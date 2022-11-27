@@ -3,7 +3,7 @@ let config = require('./config/config-mastodon.json');
 let Mastodon = require('mastodon-api');
 
 
-exports.queryMentions = async () => {
+exports.queryMentions = async (lastStatusId) => {
 
     // let axiosMastodon = axios.create({
     //     baseURL: 'https://botsin.space/api/v1/',
@@ -20,8 +20,10 @@ exports.queryMentions = async () => {
         access_token: config['access-token'],
         api_url: 'https://botsin.space/api/v1/',
       });
-  
-      let promise = new Promise( (resolve, reject) => M.get('notifications?limit=10&types[]=mention')
+      let queryString = 'notifications?limit=10&types[]=mention';
+      queryString = queryString + ( lastStatusId ? `&since_id=${lastStatusId}` : '');
+      
+      let promise = new Promise( (resolve, reject) => M.get(queryString)
         .then((resp) => {
             resolve(resp.data);
         })
