@@ -8,6 +8,7 @@ test('tests queryMentions returns results', async () => {
 
     for(let item of result){
         if(item) {
+            console.log(`id: ${item.id} created_at: ${item?.status.created_at} content: ${item?.status.content}`);
             console.log(item);
         }
     }

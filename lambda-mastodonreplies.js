@@ -22,26 +22,28 @@ exports.handler = async (event) => {
         //get last status id that was replied to then pass to Mastodon /notifications query
         let lastReplies = await mastodonReplies.queryMentions(lastRepliedToStatusId);
         console.log(`Last replies since id [${lastRepliedToStatusId}] : ${lastReplies.length}`);
+        let repliesProcessed = 0;
         if(lastReplies.length > 0){
             //reply to first found in list, process any other replies later on next run
             let mostRecentIdRepliedTo = 0;
             for(let reply of lastReplies){
                 if(reply.id > lastRepliedToStatusId){
-                    console.log(`Reply id [${reply.id}] is after last acknowledged id: ${lastRepliedToStatusId}`);
+                    let replyToAccount = reply.account.acct;
+                    console.log(`Reply id [${reply.id}] is after last acknowledged id: ${lastRepliedToStatusId} from: ${replyToAccount}`);
                     if(reply.id > mostRecentIdRepliedTo){
                         mostRecentIdRepliedTo = reply.id;
                     }
 
                     let replyToBotText = '';
-                    let textReply = '';
+                    let textReply = `@${replyToAccount} `;
             
                     var direction = textadventure.adventureTextRequested(replyToBotText);
                     if(direction !== ''){
-                        textReply = 'You go ' + direction
+                        textReply = textReply + 'You go ' + direction
                             + '. ' + textadventure.generateTextAdventure(replyToBotText);
                     }
                     else{
-                        textReply = module.exports.getTextReply();
+                        textReply = textReply + module.exports.getTextReply();
                     }
             
                     var status = ({
@@ -52,18 +54,14 @@ exports.handler = async (event) => {
                         console.log("config.send-enabled: true: sending reply ...");
             
                         //send reply with Mastodon api
-                        //TODO test
-                        mastodonSend.postMastodon(reply.status.id, status);
+                        let result = await mastodonSend.postMastodon(reply.status.id, status);
+                        console.log(`postMastodon result: ${result}`);
                     }
                     else {
                         console.log("config.send-enabled: false, not sending reply");
                     }
                     console.log("reply: " + JSON.stringify(status));
-            
-                    //TODO get id of last replied to and update in table
-                    let lastIdRepliedTo = 'todo';
-                    
-                    
+                    repliesProcessed = repliesProcessed + 1;
                 }
                 else{
                     console.log(`Reply id [${reply.id}] is before last acknowledged id: ${lastRepliedToStatusId}, ignoring`);
@@ -72,13 +70,33 @@ exports.handler = async (event) => {
 
             if(mostRecentIdRepliedTo > 0){
                 //update last replied to id with the most recent (highest) in this last processed group
-                lastStatusQuery.updateDbStatus('lastStatusId', mostRecentIdRepliedTo);
+                if(config['send-enabled'] === 'true'){
+                    let updateResult = await lastStatusQuery.updateDbStatus('lastStatusId', mostRecentIdRepliedTo);
+                    console.log(`updateDbStatus result: ${JSON.stringify(updateResult)}`);
+                }
+                else{
+                    console.log('Skipping updateDbStatus, config.send-enabled is false');
+                }
             }
         }
         else{
             console.log("... no more recent statuses yet, skipping");
         }
-
+        
+        let result = {
+            status: '',
+            repliesProcessed: repliesProcessed
+        }
+        if(lastReplies.length === 0){
+            result.status = 'No replies since last check';
+        }
+        else if(repliesProcessed > 0){
+            result.status = 'Replies processed';
+        }
+        else{
+            result.status = 'No replies processed';
+        }
+        return result;
 }
 
 exports.nextIntInRange = function(high){
