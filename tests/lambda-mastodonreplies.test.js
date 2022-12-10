@@ -1,14 +1,19 @@
+//mock dynamodb lookup for last processed reply id
+const lastStatusQuery = require('../db_status.js');
+jest.mock('../db_status.js');
+
+//mock mastodon api query for mentions
+const mastodonReplies = require('../mastodon-queryMentions.js');
+jest.mock('../mastodon-queryMentions.js');
+
+
 test('tests processing 1 mention since last processed', async () => {
-    //mock dynamodb lookup for last processed reply id
-    let lastStatusQuery = require('../db_status.js');
-    jest.mock('../db_status.js');
+    lastStatusQuery.getLastDbStatus = jest.fn();
     lastStatusQuery.getLastDbStatus.mockResolvedValue(
         {"Items":[{"statusKey":"lastStatusId","lastReplyId":"1"}],"Count":1,"ScannedCount":1}
     );
 
-    //mock mastodon api query for mentions
-    let mastodonReplies = require('../mastodon-queryMentions.js');
-    jest.mock('../mastodon-queryMentions.js');
+    mastodonReplies.queryMentions = jest.fn();
     mastodonReplies.queryMentions.mockResolvedValue([
         {
             'id': '2',
@@ -31,16 +36,12 @@ test('tests processing 1 mention since last processed', async () => {
 });
 
 test('tests 1 mention with same id as last processed, skips processing', async () => {
-    //mock dynamodb lookup for last processed reply id
-    let lastStatusQuery = require('../db_status.js');
-    jest.mock('../db_status.js');
+
     lastStatusQuery.getLastDbStatus.mockResolvedValue(
         {"Items":[{"statusKey":"lastStatusId","lastReplyId":"1"}],"Count":1,"ScannedCount":1}
     );
 
     //mock mastodon api query for mentions
-    let mastodonReplies = require('../mastodon-queryMentions.js');
-    jest.mock('../mastodon-queryMentions.js');
     mastodonReplies.queryMentions.mockResolvedValue([
         {
             'id': '1',
@@ -63,19 +64,43 @@ test('tests 1 mention with same id as last processed, skips processing', async (
 });
 
 test('tests 0 mentions since last processed', async () => {
-    //mock dynamodb lookup for last processed reply id
-    let lastStatusQuery = require('../db_status.js');
-    jest.mock('../db_status.js');
+    //mock dynamodb lookup for last processed reply id;
     lastStatusQuery.getLastDbStatus.mockResolvedValue(
         {"Items":[{"statusKey":"lastStatusId","lastReplyId":"1"}],"Count":1,"ScannedCount":1}
     );
 
     //mock mastodon api query for mentions - return 0 results
-    let mastodonReplies = require('../mastodon-queryMentions.js');
-    jest.mock('../mastodon-queryMentions.js');
     mastodonReplies.queryMentions.mockResolvedValue([]);
 
     let lambda = require('../lambda-mastodonreplies.js');
     let results = await lambda.handler();
     expect(results.status).toBe('No replies since last check');
 });
+
+test('adventure reply parses go request from reply text', async () => {
+
+    //mock dynamodb lookup for last processed reply id
+    lastStatusQuery.getLastDbStatus.mockResolvedValue(
+        {"Items":[{"statusKey":"lastStatusId","lastReplyId":"1"}],"Count":1,"ScannedCount":1}
+    );
+
+    mastodonReplies.queryMentions.mockResolvedValue([
+        {
+            'id': '2',
+            'type': 'mention',
+            'created_at': '2022-11-27T03:24:08.275Z',
+            'account': {
+                id: 111111,
+                'acct': 'mockuser'
+            },
+            'status': {
+            'id': '112233',
+            'content': '<p><span class="h-card"><a href="https://botsin.space/@kevinhookebot" class="u-url mention" rel="nofollow noopener noreferrer" target="_blank">@<span>kevinhookebot</span></a></span> go north</p>'
+            }
+        }
+    ]);
+
+    let lambda = require('../lambda-mastodonreplies.js');
+    let results = await lambda.handler();
+    expect(results.status).toBe('Replies processed');
+})
