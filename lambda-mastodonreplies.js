@@ -22,6 +22,7 @@ exports.handler = async (event) => {
         //get last status id that was replied to then pass to Mastodon /notifications query
         let lastReplies = await mastodonReplies.queryMentions(lastRepliedToStatusId);
         console.log(`Last replies since id [${lastRepliedToStatusId}] : ${lastReplies.length}`);
+
         let repliesProcessed = 0;
         if(lastReplies.length > 0){
             //reply to first found in list, process any other replies later on next run
@@ -34,7 +35,8 @@ exports.handler = async (event) => {
                         mostRecentIdRepliedTo = reply.id;
                     }
 
-                    let replyToBotText = '';
+                    let replyToBotText = reply.status.content;
+                    console.log(`reply text: ${replyToBotText}`);
                     let textReply = `@${replyToAccount} `;
             
                     var direction = textadventure.adventureTextRequested(replyToBotText);

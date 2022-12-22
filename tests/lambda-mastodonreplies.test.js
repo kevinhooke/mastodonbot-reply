@@ -1,19 +1,21 @@
+/**
+ * Run with jest, not 'npm run test' which is configured
+ * to test ES modules imported for contentparser.
+ * 
+ */
 //mock dynamodb lookup for last processed reply id
 const lastStatusQuery = require('../db_status.js');
-jest.mock('../db_status.js');
+lastStatusQuery.getLastDbStatus = jest.fn();
 
 //mock mastodon api query for mentions
 const mastodonReplies = require('../mastodon-queryMentions.js');
-jest.mock('../mastodon-queryMentions.js');
-
+mastodonReplies.queryMentions = jest.fn();
 
 test('tests processing 1 mention since last processed', async () => {
-    lastStatusQuery.getLastDbStatus = jest.fn();
     lastStatusQuery.getLastDbStatus.mockResolvedValue(
         {"Items":[{"statusKey":"lastStatusId","lastReplyId":"1"}],"Count":1,"ScannedCount":1}
     );
 
-    mastodonReplies.queryMentions = jest.fn();
     mastodonReplies.queryMentions.mockResolvedValue([
         {
             'id': '2',
@@ -60,7 +62,7 @@ test('tests 1 mention with same id as last processed, skips processing', async (
 
     let lambda = require('../lambda-mastodonreplies.js');
     let results = await lambda.handler();
-    expect(results.status).toBe('No replies since last check');
+    expect(results.status).toBe('No replies processed');
 });
 
 test('tests 0 mentions since last processed', async () => {
