@@ -1,6 +1,6 @@
-import { stripHtml } from 'string-strip-html';
+const { stripHtml}  = require('string-strip-html');
 
-export const extractTextFromContent = (text) => {
+exports.extractTextFromContent = (text) => {
 
     let result = stripHtml(text).result;
     return result;

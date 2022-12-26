@@ -1,16 +1,22 @@
-var tracery = require('tracery-grammar');
+let tracery = require('tracery-grammar');
+let parser = require('./mastodon-contentparser.js');
 
-exports.adventureTextRequested = function(tweetText){
+exports.adventureTextRequested = function(replyText){
     let result = '';
 
-    if(tweetText != null) {
+    if(replyText != null) {
+
+        //extract text from HTML reply
+        replyText =  parser.extractTextFromContent(replyText);
 
         //strip @kevinhookebot
-        tweetText = tweetText.replace(/@kevinhookebot/, '');
-        tweetText = tweetText.trim();
+        console.log(`Before removing @:${replyText}`);
+        replyText = replyText.replace(/@[\s]+kevinhookebot/, '');
+        replyText = replyText.trim();
+        console.log(`...after removing @:${replyText}`);
 
-        if (tweetText.indexOf('go ') == 0) {
-            let words = tweetText.split(' ');
+        if (replyText.indexOf('go ') == 0) {
+            let words = replyText.split(' ');
 
             for (var i = 0; i < words.length; i++) {
                 console.log('word: ' + words[i]);

@@ -39,7 +39,8 @@ exports.handler = async (event) => {
                     console.log(`reply text: ${replyToBotText}`);
                     let textReply = `@${replyToAccount} `;
             
-                    var direction = textadventure.adventureTextRequested(replyToBotText);
+                    let direction = textadventure.adventureTextRequested(replyToBotText);
+                    console.log(`Adventure reply text: ${direction}`);
                     if(direction !== ''){
                         textReply = textReply + 'You go ' + direction
                             + '. ' + textadventure.generateTextAdventure(replyToBotText);
