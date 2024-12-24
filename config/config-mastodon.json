@@ -1,4 +1,5 @@
 {
     "send-enabled" : "true",
+    "mastodon-server" : "your-mastodon-instance-url",
     "access-token" : "your-access-token-here"
 }

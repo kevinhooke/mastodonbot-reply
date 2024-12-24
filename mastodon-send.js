@@ -5,7 +5,7 @@ exports.postMastodon = async (replyToStatusId, status) => {
 
     const M = new Mastodon({
         access_token: config['access-token'],
-        api_url: 'https://botsin.space/api/v1/',
+        api_url: config['mastodon-server'] + '/api/v1/',
     });
 
     let promise = new Promise( (resolve, reject) => M.post('statuses', {
