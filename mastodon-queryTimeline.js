@@ -23,7 +23,7 @@ exports.queryTimeline = async () => {
 
     const M = new Mastodon({
       access_token: config['access-token'],
-      api_url: 'https://botsin.space/api/v1/',
+      api_url: config['mastodon-server'] + '/api/v1/',
     });
 
     let promise = new Promise( (resolve, reject) => M.get('timelines/home?limit=10')
